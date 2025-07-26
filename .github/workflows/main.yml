@@ -11,30 +11,26 @@ jobs:
     - name: Download Ngrok
       run: |
         Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Expand-Archive ngrok.zip -DestinationPath .
+        Expand-Archive ngrok.zip -DestinationPath ngrok
 
     - name: Add Ngrok Authtoken
-      run: .\ngrok.exe authtoken "${{ secrets.NGROK_AUTH }}"
+      run: |
+        .\ngrok\ngrok.exe authtoken "${{ secrets.NGROK_AUTH }}"
 
     - name: Enable RDP and Firewall
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        net user administrator /active:yes
-        net user administrator OLDUSE#6
+        net user runneradmin OLDUSE#6
 
     - name: Start Ngrok Tunnel
-      run: |
-        .\ngrok.exe tcp 3389 --log=stdout > ngrok.log &
-        Start-Sleep -Seconds 10
-        Get-Content ngrok.log | Select-String "tcp://"
+      run: Start-Process -NoNewWindow -FilePath ".\ngrok\ngrok.exe" -ArgumentList "tcp", "3389"
 
     - name: Show Login Info
       run: |
-        echo "Username: administrator"
+        echo "Username: runneradmin"
         echo "Password: OLDUSE#6"
-        echo "Connect to Ngrok IP shown above in ngrok.log"
-        ipconfig
+        echo "Login via IP shown in https://dashboard.ngrok.com"
 
     - name: Keep Alive
       run: |
