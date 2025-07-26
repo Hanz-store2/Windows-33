@@ -14,24 +14,27 @@ jobs:
         Expand-Archive ngrok.zip -DestinationPath .
 
     - name: Add Ngrok Authtoken
-      run: .\ngrok\ngrok.exe authtoken "${{ secrets.NGROK_AUTH }}"
+      run: .\ngrok.exe authtoken "${{ secrets.NGROK_AUTH }}"
 
-    - name: Start Ngrok Tunnel
-      run: Start-Process -NoNewWindow -FilePath ".\ngrok\ngrok.exe" -ArgumentList "tcp", "3389"
-
-    - name: Enable RDP
+    - name: Enable RDP and Firewall
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        net user administrator /active:yes
+        net user administrator OLDUSE#6
+
+    - name: Start Ngrok Tunnel
+      run: |
+        .\ngrok.exe tcp 3389 --log=stdout > ngrok.log &
+        Start-Sleep -Seconds 10
+        Get-Content ngrok.log | Select-String "tcp://"
 
     - name: Show Login Info
       run: |
-        net user administrator /active:yes
-        net user administrator OLDUSE#6
-        ipconfig
         echo "Username: administrator"
         echo "Password: OLDUSE#6"
-        echo "Note: Use IP from ngrok (tcp://xxx) shown in ngrok dashboard"
+        echo "Connect to Ngrok IP shown above in ngrok.log"
+        ipconfig
 
     - name: Keep Alive
       run: |
